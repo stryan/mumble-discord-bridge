@@ -37,7 +37,6 @@ func (l *Listener) ready(s *discordgo.Session, event *discordgo.Ready) {
 	for _, vs := range g.VoiceStates {
 		if vs.ChannelID == l.BridgeConf.CID {
 			l.UserCountLock.Lock()
-			l.Bridge.DiscordUserCount = l.Bridge.DiscordUserCount + 1
 			u, err := s.User(vs.UserID)
 			if err != nil {
 				log.Println("error looking up username")
@@ -84,6 +83,10 @@ func (l *Listener) messageCreate(s *discordgo.Session, m *discordgo.MessageCreat
 				log.Printf("Trying to join GID %v and VID %v\n", g.ID, vs.ChannelID)
 				die := make(chan bool)
 				l.Bridge.ActiveConn = die
+				if l.Bridge.Mode == bridgeModeAuto {
+					l.Bridge.Mode = bridgeModeManual
+					l.Bridge.AutoChan <- true
+				}
 				go startBridge(s, g.ID, vs.ChannelID, l, die)
 				return
 			}
@@ -143,9 +146,22 @@ func (l *Listener) guildCreate(s *discordgo.Session, event *discordgo.GuildCreat
 }
 
 func (l *Listener) voiceUpdate(s *discordgo.Session, event *discordgo.VoiceStateUpdate) {
+	current_channel := ""
+	if l.Bridge.Mode == bridgeModeManual {
+		//we could be anywhere in manual mode, find current vc
+		vc, ok := s.VoiceConnections[event.GuildID]
+		if !ok {
+			l.UserCountLock.Unlock()
+			return
+		} else {
+			current_channel = vc.ChannelID
+		}
+	} else {
+		current_channel = l.BridgeConf.CID
+	}
 	l.UserCountLock.Lock()
 	if event.GuildID == l.BridgeConf.GID {
-		if event.ChannelID == l.BridgeConf.CID {
+		if event.ChannelID == current_channel {
 			//get user
 			u, err := s.User(event.UserID)
 			if err != nil {
@@ -166,7 +182,6 @@ func (l *Listener) voiceUpdate(s *discordgo.Session, event *discordgo.VoiceState
 			}
 			l.ConnectedLock.Unlock()
 			l.Bridge.DiscordUsers[u.Username] = true
-			l.Bridge.DiscordUserCount = l.Bridge.DiscordUserCount + 1
 			l.UserCountLock.Unlock()
 		}
 		if event.ChannelID == "" {
@@ -179,14 +194,14 @@ func (l *Listener) voiceUpdate(s *discordgo.Session, event *discordgo.VoiceState
 				return
 			}
 
-			// Look for current voice states in watched channel
+			// Look for current voice states in current channel
 			count := 0
 			for _, vs := range g.VoiceStates {
-				if vs.ChannelID == l.BridgeConf.CID {
+				if vs.ChannelID == current_channel {
 					count = count + 1
 				}
 			}
-			if l.Bridge.DiscordUserCount > count {
+			if len(l.Bridge.DiscordUsers) > count {
 				u, err := s.User(event.UserID)
 				if err != nil {
 					log.Printf("error looking up user for uid %v", event.UserID)
@@ -200,7 +215,6 @@ func (l *Listener) voiceUpdate(s *discordgo.Session, event *discordgo.VoiceState
 					})
 				}
 				l.ConnectedLock.Unlock()
-				l.Bridge.DiscordUserCount = count
 			}
 			l.UserCountLock.Unlock()
 		}
