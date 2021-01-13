@@ -111,12 +111,10 @@ func main() {
 		CID:            *discordCID,
 	}
 	Bridge := &BridgeState{
-		ActiveConn:       make(chan bool),
-		Connected:        false,
-		MumbleUserCount:  0,
-		DiscordUserCount: 0,
-		DiscordUsers:     make(map[string]bool),
-		MumbleUsers:      make(map[string]bool),
+		ActiveConn:   make(chan bool),
+		Connected:    false,
+		DiscordUsers: make(map[string]bool),
+		MumbleUsers:  make(map[string]bool),
 	}
 	ul := &sync.Mutex{}
 	cl := &sync.Mutex{}

@@ -16,15 +16,13 @@ import (
 
 //BridgeState manages dynamic information about the bridge during runtime
 type BridgeState struct {
-	ActiveConn       chan bool
-	Connected        bool
-	Mode             bridgeMode
-	Client           *gumble.Client
-	DiscordUsers     map[string]bool
-	MumbleUsers      map[string]bool
-	MumbleUserCount  int
-	DiscordUserCount int
-	AutoChan         chan bool
+	ActiveConn   chan bool
+	Connected    bool
+	Mode         bridgeMode
+	Client       *gumble.Client
+	DiscordUsers map[string]bool
+	MumbleUsers  map[string]bool
+	AutoChan     chan bool
 }
 
 func startBridge(discord *discordgo.Session, discordGID string, discordCID string, l *Listener, die chan bool) {
@@ -113,9 +111,7 @@ func startBridge(discord *discordgo.Session, discordGID string, discordCID strin
 		close(toMumble)
 		l.Bridge.Connected = false
 		l.Bridge.Client = nil
-		l.Bridge.MumbleUserCount = 0
 		l.Bridge.MumbleUsers = make(map[string]bool)
-		l.Bridge.DiscordUserCount = 0
 		l.Bridge.DiscordUsers = make(map[string]bool)
 	}
 }
@@ -137,9 +133,6 @@ func discordStatusUpdate(dg *discordgo.Session, host, port string, l *Listener) 
 			curr = resp.ConnectedUsers
 			if l.Bridge.Connected {
 				curr = curr - 1
-			}
-			if curr != l.Bridge.MumbleUserCount {
-				l.Bridge.MumbleUserCount = curr
 			}
 			if curr == 0 {
 				status = ""
@@ -171,13 +164,13 @@ func AutoBridge(s *discordgo.Session, l *Listener) {
 		}
 		time.Sleep(3 * time.Second)
 		l.UserCountLock.Lock()
-		if !l.Bridge.Connected && l.Bridge.MumbleUserCount > 0 && l.Bridge.DiscordUserCount > 0 {
+		if !l.Bridge.Connected && len(l.Bridge.MumbleUsers) > 0 && len(l.Bridge.DiscordUsers) > 0 {
 			log.Println("users detected in mumble and discord, bridging")
 			die := make(chan bool)
 			l.Bridge.ActiveConn = die
 			go startBridge(s, l.BridgeConf.GID, l.BridgeConf.CID, l, die)
 		}
-		if l.Bridge.Connected && l.Bridge.MumbleUserCount == 0 && l.Bridge.DiscordUserCount <= 1 {
+		if l.Bridge.Connected && len(l.Bridge.MumbleUsers) == 0 && len(l.Bridge.DiscordUsers) <= 1 {
 			log.Println("no one online, killing bridge")
 			l.Bridge.ActiveConn <- true
 			l.Bridge.ActiveConn = nil
