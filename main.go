@@ -114,7 +114,7 @@ func main() {
 		ActiveConn:   make(chan bool),
 		Connected:    false,
 		DiscordUsers: make(map[string]bool),
-		MumbleUsers:  make(map[string]bool),
+		MumbleChannelUsers:  make(map[string]bool),
 	}
 	ul := &sync.Mutex{}
 	cl := &sync.Mutex{}
@@ -127,9 +127,8 @@ func main() {
 	discord.Identify.Intents = discordgo.MakeIntent(discordgo.IntentsAllWithoutPrivileged)
 	discord.ShouldReconnectOnError = true
 	// register handlers
-	discord.AddHandler(l.ready)
-	discord.AddHandler(l.messageCreate)
 	discord.AddHandler(l.guildCreate)
+	discord.AddHandler(l.messageCreate)
 	discord.AddHandler(l.voiceUpdate)
 	err = discord.Open()
 	l.BridgeConf.Config.Attach(gumbleutil.Listener{

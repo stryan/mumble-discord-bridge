@@ -20,21 +20,14 @@ type Listener struct {
 	ConnectedLock *sync.Mutex
 }
 
-func (l *Listener) ready(s *discordgo.Session, event *discordgo.Ready) {
-	log.Println("READY event registered")
+func (l *Listener) guildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {
+	log.Println("CREATE event registered")
 	//Setup initial discord state
-	var g *discordgo.Guild
-	g = nil
-	for _, i := range event.Guilds {
-		if i.ID == l.BridgeConf.GID {
-			g = i
-		}
-	}
-	if g == nil {
-		log.Println("bad guild on READY")
+	if event.ID != l.BridgeConf.GID {
+		log.Println("received GuildCreate from a guild not in config")
 		return
 	}
-	for _, vs := range g.VoiceStates {
+	for _, vs := range event.VoiceStates {
 		if vs.ChannelID == l.BridgeConf.CID {
 			l.UserCountLock.Lock()
 			u, err := s.User(vs.UserID)
@@ -50,6 +43,7 @@ func (l *Listener) ready(s *discordgo.Session, event *discordgo.Ready) {
 			l.UserCountLock.Unlock()
 		}
 	}
+	log.Printf("discord User map: %v", l.Bridge.DiscordUsers)
 }
 
 func (l *Listener) messageCreate(s *discordgo.Session, m *discordgo.MessageCreate) {
@@ -127,20 +121,6 @@ func (l *Listener) messageCreate(s *discordgo.Session, m *discordgo.MessageCreat
 		} else {
 			l.Bridge.AutoChan <- true
 			l.Bridge.Mode = bridgeModeManual
-		}
-	}
-}
-
-func (l *Listener) guildCreate(s *discordgo.Session, event *discordgo.GuildCreate) {
-
-	if event.Guild.Unavailable {
-		return
-	}
-
-	for _, channel := range event.Guild.Channels {
-		if channel.ID == event.Guild.ID {
-			log.Println("Mumble-Discord bridge is active in new guild")
-			return
 		}
 	}
 }
@@ -236,13 +216,13 @@ func (l *Listener) mumbleConnect(e *gumble.ConnectEvent) {
 func (l *Listener) mumbleUserChange(e *gumble.UserChangeEvent) {
 	l.UserCountLock.Lock()
 	if e.Type.Has(gumble.UserChangeConnected) || e.Type.Has(gumble.UserChangeChannel) || e.Type.Has(gumble.UserChangeDisconnected) {
-		l.Bridge.MumbleUsers = make(map[string]bool)
+		l.Bridge.MumbleChannelUsers = make(map[string]bool)
 		for _, user := range l.Bridge.Client.Self.Channel.Users {
 			//note, this might be too slow for really really big channels?
 			//event listeners block while processing
 			//also probably bad to rebuild the set every user change.
 			if user.Name != l.Bridge.Client.Self.Name {
-				l.Bridge.MumbleUsers[user.Name] = true
+				l.Bridge.MumbleChannelUsers[user.Name] = true
 			}
 		}
 	}
