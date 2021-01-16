@@ -19,7 +19,7 @@ Usage of mumble-discord-bridge:
   -discord-token string
         DISCORD_TOKEN, discord bot token
   -discord-command string
-	DISCORD_COMMAND, the string to look for when manually entering commands in Discord (in the form of !DISCORD_COMMAND)
+	DISCORD_COMMAND, the string to look for when manually entering commands in Discord (in the form of !DISCORD_COMMAND). Default "mumble-discord"
   -mumble-address string
         MUMBLE_ADDRESS, mumble server address, example example.com
   -mumble-password string
@@ -27,13 +27,17 @@ Usage of mumble-discord-bridge:
   -mumble-port int
         MUMBLE_PORT mumble port (default 64738)
   -mumble-username string
-        MUMBLE_USERNAME, mumble username (default "discord-bridge")
+        MUMBLE_USERNAME, mumble username (default "Discord")
   -mumble-insecure bool
-        MUMBLE_INSECURE, allow connection to insecure (invalid TLS cert) mumble server
+        MUMBLE_INSECURE, allow connection to insecure (invalid TLS cert) mumble server (default False)
   -mumble-channel string
 	MUMBLE_CHANNEL, pick what channel the bridge joins in Mumble. Must be a direct child of Root.
+  -mumble-announce bool
+	MUMBLE_ANNOUNCE, whether the bridge should post in the Mumble text chat when a new user joins the Discord voice channel (default "true")
   -mode string
 	MODE, determines what mode the bridge starts in
+  -nice bool
+        NICE, whether the bridge should automatically try to "nice" itself (run with lower priority). (default false)
 ```
 
 The bridge can be run with the follow modes:
@@ -44,7 +48,7 @@ The bridge can be run with the follow modes:
    manual
        The bridge starts up but does not connect immediately. It will join the voice channels when issued the link command and will leave with the unlink command
    constant
-       The bridge starts up and immediately connects to both Discord and Mumble voice channels. It can not be controlled in this mode and quits when the program is stopped
+       The bridge starts up and immediately connects to both Discord and Mumble voice channels. It can not be controlled in this mode and quits when the program is stopped. This is the default mode.
 ```
 
 In "auto" or "manual" modes, the bridge can be controlled in Discord with the following commands:
@@ -52,6 +56,7 @@ In "auto" or "manual" modes, the bridge can be controlled in Discord with the fo
 ```bash
 !DISCORD_COMMAND link
 	Commands the bridge to join the Discord channel the user is in and the Mumble server
+	Using this command while the bridge is in Auto mode will set it to Manual mode.
 !DISCORD_COMMAND unlink
 	Commands the bridge to leave the Discord channel the user is in and the Mumble server
 !DISCORD_COMMAND refresh
