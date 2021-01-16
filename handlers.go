@@ -126,22 +126,21 @@ func (l *Listener) messageCreate(s *discordgo.Session, m *discordgo.MessageCreat
 }
 
 func (l *Listener) voiceUpdate(s *discordgo.Session, event *discordgo.VoiceStateUpdate) {
-	current_channel := ""
+	currentChannel := ""
 	if l.Bridge.Mode == bridgeModeManual {
 		//we could be anywhere in manual mode, find current vc
 		vc, ok := s.VoiceConnections[event.GuildID]
 		if !ok {
 			l.UserCountLock.Unlock()
 			return
-		} else {
-			current_channel = vc.ChannelID
 		}
+		currentChannel = vc.ChannelID
 	} else {
-		current_channel = l.BridgeConf.CID
+		currentChannel = l.BridgeConf.CID
 	}
 	l.UserCountLock.Lock()
 	if event.GuildID == l.BridgeConf.GID {
-		if event.ChannelID == current_channel {
+		if event.ChannelID == currentChannel {
 			//get user
 			u, err := s.User(event.UserID)
 			if err != nil {
@@ -177,7 +176,7 @@ func (l *Listener) voiceUpdate(s *discordgo.Session, event *discordgo.VoiceState
 			// Look for current voice states in current channel
 			count := 0
 			for _, vs := range g.VoiceStates {
-				if vs.ChannelID == current_channel {
+				if vs.ChannelID == currentChannel {
 					count = count + 1
 				}
 			}
