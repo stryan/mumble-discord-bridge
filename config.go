@@ -25,6 +25,7 @@ type BridgeConfig struct {
 	MumbleAddr     string
 	MumbleInsecure bool
 	MumbleChannel  string
+	MumbleAnnounce bool
 	Command        string
 	GID            string
 	CID            string

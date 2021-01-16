@@ -37,6 +37,7 @@ func main() {
 	mumblePassword := flag.String("mumble-password", lookupEnvOrString("MUMBLE_PASSWORD", ""), "MUMBLE_PASSWORD, mumble password, optional")
 	mumbleInsecure := flag.Bool("mumble-insecure", lookupEnvOrBool("MUMBLE_INSECURE", false), "mumble insecure,  env alt MUMBLE_INSECURE")
 	mumbleChannel := flag.String("mumble-channel", lookupEnvOrString("MUMBLE_CHANNEL", ""), "mumble channel to start in")
+	mumbleAnnounce := flag.Bool("mumble-announce", lookupEnvOrBool("MUMBLE_ANNOUNCE", true), "MUMBLE_ANNOUNCE, whether the bridge should message the Mumble text chat when a new user joins in Discord")
 	discordToken := flag.String("discord-token", lookupEnvOrString("DISCORD_TOKEN", ""), "DISCORD_TOKEN, discord bot token")
 	discordGID := flag.String("discord-gid", lookupEnvOrString("DISCORD_GID", ""), "DISCORD_GID, discord gid")
 	discordCID := flag.String("discord-cid", lookupEnvOrString("DISCORD_CID", ""), "DISCORD_CID, discord cid")
@@ -106,15 +107,16 @@ func main() {
 		MumbleAddr:     *mumbleAddr + ":" + strconv.Itoa(*mumblePort),
 		MumbleInsecure: *mumbleInsecure,
 		MumbleChannel:  *mumbleChannel,
+		MumbleAnnounce: *mumbleAnnounce,
 		Command:        *discordCommand,
 		GID:            *discordGID,
 		CID:            *discordCID,
 	}
 	Bridge := &BridgeState{
-		ActiveConn:   make(chan bool),
-		Connected:    false,
-		DiscordUsers: make(map[string]bool),
-		MumbleChannelUsers:  make(map[string]bool),
+		ActiveConn:         make(chan bool),
+		Connected:          false,
+		DiscordUsers:       make(map[string]bool),
+		MumbleChannelUsers: make(map[string]bool),
 	}
 	ul := &sync.Mutex{}
 	cl := &sync.Mutex{}
@@ -130,11 +132,12 @@ func main() {
 	discord.AddHandler(l.guildCreate)
 	discord.AddHandler(l.messageCreate)
 	discord.AddHandler(l.voiceUpdate)
-	err = discord.Open()
 	l.BridgeConf.Config.Attach(gumbleutil.Listener{
 		Connect:    l.mumbleConnect,
 		UserChange: l.mumbleUserChange,
 	})
+
+	err = discord.Open()
 	if err != nil {
 		log.Println(err)
 		return

@@ -35,7 +35,7 @@ func (l *Listener) guildCreate(s *discordgo.Session, event *discordgo.GuildCreat
 				log.Println("error looking up username")
 			}
 			l.Bridge.DiscordUsers[u.Username] = true
-			if l.Bridge.Connected {
+			if l.Bridge.Connected && l.BridgeConf.MumbleAnnounce {
 				l.Bridge.Client.Do(func() {
 					l.Bridge.Client.Self.Channel.Send(fmt.Sprintf("%v has joined Discord channel\n", u.Username), false)
 				})
@@ -155,7 +155,7 @@ func (l *Listener) voiceUpdate(s *discordgo.Session, event *discordgo.VoiceState
 			}
 			log.Println("user joined watched discord channel")
 			l.ConnectedLock.Lock()
-			if l.Bridge.Connected {
+			if l.Bridge.Connected && l.BridgeConf.MumbleAnnounce {
 				l.Bridge.Client.Do(func() {
 					l.Bridge.Client.Self.Channel.Send(fmt.Sprintf("%v has joined Discord channel\n", u.Username), false)
 				})
@@ -189,7 +189,7 @@ func (l *Listener) voiceUpdate(s *discordgo.Session, event *discordgo.VoiceState
 				delete(l.Bridge.DiscordUsers, u.Username)
 				log.Println("user left watched discord channel")
 				l.ConnectedLock.Lock()
-				if l.Bridge.Connected {
+				if l.Bridge.Connected && l.BridgeConf.MumbleAnnounce {
 					l.Bridge.Client.Do(func() {
 						l.Bridge.Client.Self.Channel.Send(fmt.Sprintf("%v has left Discord channel\n", u.Username), false)
 					})
